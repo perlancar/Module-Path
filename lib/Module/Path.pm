@@ -25,12 +25,14 @@ BEGIN {
 sub module_path
 {
     my $module = shift;
+    my $opts   = shift // {};
     my $relpath;
     my $fullpath;
 
     ($relpath = $module) =~ s/::/$SEPARATOR/g;
     $relpath .= '.pm' unless $relpath =~ m!\.pm$!;
 
+    my @dirs;
     foreach my $dir (@INC) {
         # see 'perldoc -f require' on why you might find
         # a reference in @INC
@@ -47,9 +49,16 @@ sub module_path
         }
 
         $fullpath = $dir.$SEPARATOR.$relpath;
-        return $fullpath if -f $fullpath;
+        if (-f $fullpath) {
+            if ($opts->{all}) {
+                push @dirs, $fullpath;
+            } else {
+                return $fullpath;
+            }
+        }
     }
 
+    return @dirs if $opts->{all};
     return undef;
 }
 
@@ -62,7 +71,7 @@ Module::Path - get the full path to a locally installed module
 =head1 SYNOPSIS
 
  use Module::Path 'module_path';
- 
+
  $path = module_path('Test::More');
  if (defined($path)) {
    print "Test::More found at $path\n";
@@ -123,6 +132,10 @@ this means you can pass a partial path, such as used as the keys in C<%INC>:
   module_path('Test/More.pm') eq $INC{'Test/More.pm'}
 
 The above is the basis for one of the tests.
+
+C<module_path()> accepts an optional second hashref argument C<$opts>. If C<<
+$opts->{all} >> is true, then the function will return a list containing all
+found path instead of the first path found.
 
 =head1 BUGS
 
@@ -186,4 +199,3 @@ This software is copyright (c) 2012 by Neil Bowers <neilb@cpan.org>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
-
